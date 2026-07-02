@@ -1,0 +1,48 @@
+{
+    "Class Import": {
+        "prefix": "reqclass",
+        "description": "Imports Class from classe",
+        "body": [
+            "local Class = require(\"classe\").Class"
+        ],
+    },
+    "Class Declaration": {
+        "prefix": "class",
+        "description": "Creates a class",
+        "body": [
+            "---@class (exact) ${1:Some}Class : Class",
+            "---@field public new fun(self: self): ${1:Some}",
+            "local ${1:Some} = Class:new(\"${1:Some}\")",
+            "",
+            "---@class (exact) ${1:Some}",
+            "${1:Some}.prototype = ${1:Some}.prototype",
+            "",
+            "---@private",
+            "---@return void",
+            "function ${1:Some}.prototype:__init()",
+            "end",
+            "",
+            "$0",
+        ],
+    },
+    "Subclass Declaration": {
+        "prefix": "subclass",
+        "description": "Creates a class that extends another one",
+        "body": [
+            "---@class (exact) ${1:Some}Class : Class",
+            "---@field public new fun(self: self): ${1:Some}",
+            "local ${1:Some} = Class:extend(${2:Base}, \"${1:Some}\")",
+            "",
+            "---@class (exact) ${1:Some} : ${2:Base}",
+            "${1:Some}.prototype = ${1:Some}.prototype",
+            "",
+            "---@private",
+            "---@return void",
+            "function ${1:Some}.prototype:__init()",
+            "    ${2:Base}.prototype.__init(self)",
+            "end",
+            "",
+            "$0",
+        ],
+    }
+}

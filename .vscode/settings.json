@@ -1,0 +1,9 @@
+{
+    "[lua]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "JohnnyMorganz.stylua"
+    },
+    "cSpell.words": [
+        "sinal"
+    ]
+}
