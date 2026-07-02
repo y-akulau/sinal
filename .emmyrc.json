@@ -1,0 +1,29 @@
+{
+    "runtime": {
+        "version": "Lua5.1",
+        "requirePattern": ["?.lua", "?/init.lua"]
+    },
+    "workspace": {
+        "workspaceRoots": ["./src"],
+        "reindexDuration": 10000,
+        "enableReindex": false,
+        "library": [
+            {
+                "path": "lua_modules/share/lua/5.1",
+                "ignoreGlobs": ["sinal.lua", "sinal/**"]
+            },
+            {
+                "path": "lua_modules/share/lua/5.5",
+                "ignoreGlobs": ["sinal.lua", "sinal/**"]
+            }
+        ]
+    },
+    "format": {
+        "externalTool": {
+            "program": "stylua",
+            "args": ["-", "--stdin-filepath", "${file}"],
+            "timeout": 5000
+        },
+        "useDiff": true
+    }
+}
