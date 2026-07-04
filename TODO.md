@@ -3,4 +3,4 @@
 - [ ] `effect` cleanup
 - [ ] `untracked`
 - [ ] lazy `computed`
-- [ ] batching
+- [x] batching

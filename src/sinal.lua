@@ -5,6 +5,80 @@ local M = {}
 --- @class (exact) ISignalConsumer
 --- @field private _notify fun(self: ISignalConsumer): void
 
+--- @class (exact) SignalBatcherClass: Class
+--- @field public new       fun(self: self): SignalBatcher
+--- @field private _current SignalBatcher?
+local SignalBatcher = Class:new("SignalBatcher")
+
+--- @class (exact) SignalBatcher
+--- @field private _depth   number
+--- @field private _pending table<SignalProducer, true>
+SignalBatcher.prototype = SignalBatcher.prototype
+
+--- @public
+--- @return SignalBatcher?
+function SignalBatcher:current()
+    return self._current
+end
+
+--- @private
+--- @return void
+function SignalBatcher.prototype:__init()
+    self._depth = 0
+    self._pending = {}
+end
+
+--- @public
+--- @return void
+function SignalBatcher.prototype:activate()
+    if self._depth == 0 then
+        SignalBatcher._current = self
+    end
+
+    self._depth = self._depth + 1
+end
+
+--- @public
+--- @return void
+function SignalBatcher.prototype:deactivate()
+    self._depth = self._depth - 1
+    if self._depth == 0 then
+        SignalBatcher._current = nil
+        self:_flush()
+    end
+end
+
+--- @public
+--- @param producer SignalProducer
+--- @return void
+function SignalBatcher.prototype:defer(producer)
+    self._pending[producer] = true
+end
+
+--- @private
+--- @return void
+function SignalBatcher.prototype:_flush()
+    -- TODO: Reason about using deterministic order.
+    while next(self._pending) do
+        local current = self._pending
+        self._pending = {}
+        for producer in pairs(current) do
+            producer:notify()
+        end
+    end
+end
+
+local SIGNAL_BATCHER = SignalBatcher:new()
+
+--- @param block fun(): void
+--- @return void
+function M.batch(block)
+    SIGNAL_BATCHER:activate()
+    -- TODO: Error handling.
+    block()
+    SIGNAL_BATCHER:deactivate()
+end
+
 --- @class (exact) SignalProducerClass: Class
 --- @field public new fun(self: self): SignalProducer
 local SignalProducer = Class:new("SignalProducer")
@@ -38,6 +112,17 @@ end
 function SignalProducer.prototype:notify()
     for consumer in pairs(self._consumers) do
         pcall(consumer._notify, consumer)
+    end
+end
+
+--- @public
+--- @return void
+function SignalProducer.prototype:batch_notify()
+    local batcher = SignalBatcher:current()
+    if batcher then
+        batcher:defer(self)
+    else
+        self:notify()
     end
 end
 
@@ -141,7 +226,7 @@ function Signal.prototype:set(new_value)
 
     self._value = new_value
     if has_changed then
-        self._producer:notify()
+        self._producer:batch_notify()
     end
 end
 
