@@ -336,23 +336,28 @@ function M.computed(compute)
     return ComputedSignal:new(compute)
 end
 
+--- @alias EffectSetup fun(): void | EffectTeardown
+
+--- @alias EffectTeardown (fun(): void) | IDisposable
+
 --- @class (exact) EffectClass: Class
---- @field public new fun(self: self, block: (fun(): void)): Effect
+--- @field public new fun(self: self, setup: EffectSetup): Effect
 local Effect = Class:new("Effect")
 
 --- @class (exact) Effect: IDisposable, ISignalConsumer
 --- @field private _watcher   SignalWatcher
 --- @field private _producers table<SignalProducer, true>
---- @field private _block     fun(): void
+--- @field private _setup     EffectSetup
+--- @field private _on_teardown?  EffectTeardown
 Effect.prototype = Effect.prototype
 
 --- @private
---- @param block fun(): void
+--- @param setup EffectSetup
 --- @return void
-function Effect.prototype:__init(block)
+function Effect.prototype:__init(setup)
     self._watcher = SignalWatcher:new()
     self._producers = {}
-    self._block = block
+    self._setup = setup
 
     self:_notify()
 end
@@ -366,8 +371,14 @@ end
 --- @public
 --- @return void
 function Effect.prototype:dispose()
+    if self:is_disposed() then
+        return
+    end
+
     self._watcher = nil
-    self._block = nil
+    self._setup = nil
+
+    self:_teardown()
 
     for producer in pairs(self._producers) do
         producer:unsubscribe(self)
@@ -383,10 +394,16 @@ function Effect.prototype:_notify()
         return
     end
 
+    self:_teardown()
+
     self._watcher:activate()
-    pcall(self._block)
+    local ok, teardown = pcall(self._setup)
     local producers = self._watcher:producers()
     self._watcher:deactivate()
+
+    if ok then
+        self._on_teardown = teardown
+    end
 
     for old_producer in pairs(self._producers) do
         if not producers[old_producer] then
@@ -403,10 +420,26 @@ function Effect.prototype:_notify()
     self._producers = producers
 end
 
---- @param block fun(): void
+--- @private
+--- @return void
+function Effect.prototype:_teardown()
+    if not self._on_teardown then
+        return
+    end
+
+    if type(self._on_teardown) == "function" then
+        pcall(self._on_teardown)
+    else
+        pcall(self._on_teardown.dispose, self._on_teardown)
+    end
+
+    self._on_teardown = nil
+end
+
+--- @param setup EffectSetup
 --- @return Effect
-function M.effect(block)
-    return Effect:new(block)
+function M.effect(setup)
+    return Effect:new(setup)
 end
 
 return M
