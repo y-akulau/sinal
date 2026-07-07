@@ -1,4 +1,6 @@
 local Class = require("classe").Class
+local CompositeDisposable = require("descartavel.composite").CompositeDisposable
+local Disposer = require("descartavel.disposer").Disposer
 
 local M = {}
 
@@ -336,19 +338,20 @@ function M.computed(compute)
     return ComputedSignal:new(compute)
 end
 
---- @alias EffectSetup fun(): void | EffectTeardown
+--- @class (exact) IEffectScope
+--- @field disposables IDisposer
 
---- @alias EffectTeardown (fun(): void) | IDisposable
+--- @alias EffectSetup fun(scope: IEffectScope): void
 
 --- @class (exact) EffectClass: Class
 --- @field public new fun(self: self, setup: EffectSetup): Effect
 local Effect = Class:new("Effect")
 
 --- @class (exact) Effect: IDisposable, ISignalConsumer
---- @field private _watcher   SignalWatcher
---- @field private _producers table<SignalProducer, true>
---- @field private _setup     EffectSetup
---- @field private _on_teardown?  EffectTeardown
+--- @field private _watcher      SignalWatcher
+--- @field private _producers    table<SignalProducer, true>
+--- @field private _setup        EffectSetup
+--- @field private _disposables? CompositeDisposable
 Effect.prototype = Effect.prototype
 
 --- @private
@@ -377,7 +380,6 @@ function Effect.prototype:dispose()
 
     self._watcher = nil
     self._setup = nil
-
     self:_teardown()
 
     for producer in pairs(self._producers) do
@@ -396,13 +398,18 @@ function Effect.prototype:_notify()
 
     self:_teardown()
 
+    self._disposables = CompositeDisposable:new()
+    local disposer = Disposer:new(self._disposables)
+
     self._watcher:activate()
-    local ok, teardown = pcall(self._setup)
+    --- @type IEffectScope
+    local scope = { disposables = disposer }
+    local ok = pcall(self._setup, scope)
     local producers = self._watcher:producers()
     self._watcher:deactivate()
 
-    if ok then
-        self._on_teardown = teardown
+    if not ok then
+        self:_teardown()
     end
 
     for old_producer in pairs(self._producers) do
@@ -423,17 +430,12 @@ end
 --- @private
 --- @return void
 function Effect.prototype:_teardown()
-    if not self._on_teardown then
-        return
-    end
+    local disposables = self._disposables
+    self._disposables = nil
 
-    if type(self._on_teardown) == "function" then
-        pcall(self._on_teardown)
-    else
-        pcall(self._on_teardown.dispose, self._on_teardown)
+    if disposables then
+        pcall(disposables.dispose, disposables)
     end
-
-    self._on_teardown = nil
 end
 
 --- @param setup EffectSetup
