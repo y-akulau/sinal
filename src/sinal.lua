@@ -80,9 +80,12 @@ local SIGNAL_BATCHER = SignalBatcher:new()
 --- @return void
 function M.batch(block)
     SIGNAL_BATCHER:activate()
-    -- TODO: Error handling.
-    block()
+    local ok, e = pcall(block)
     SIGNAL_BATCHER:deactivate()
+
+    if not ok then
+        error(e, 2)
+    end
 end
 
 --- @class (exact) SignalProducerClass: Class
