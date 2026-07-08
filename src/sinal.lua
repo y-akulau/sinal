@@ -253,9 +253,10 @@ local ComputedSignal = Class:new("ComputedSignal")
 --- @field private _producers    table<SignalProducer, true>
 --- @field private _own_producer SignalProducer
 --- @field private _compute      fun(): T
+--- @field private _dirty        boolean
 --- @field private _has_value    boolean
---- @field private _value?        T
---- @field private _error?        unknown
+--- @field private _value?       T
+--- @field private _error?       unknown
 ComputedSignal.prototype = ComputedSignal.prototype
 
 --- @generic T
@@ -268,11 +269,13 @@ function ComputedSignal.prototype:__init(compute)
     self._own_producer = SignalProducer:new()
 
     self._compute = compute
+    self._dirty = false
+
     self._has_value = false
     self._value = nil
     self._error = nil
 
-    self:_notify()
+    self:_recompute()
 end
 
 --- @generic T
@@ -282,6 +285,11 @@ function ComputedSignal.prototype:get()
     local watcher = SignalWatcher:current()
     if watcher then
         watcher:watch(self._own_producer)
+    end
+
+    if self._dirty then
+        self._dirty = false
+        self:_recompute()
     end
 
     if self._has_value then
@@ -294,19 +302,24 @@ end
 --- @private
 --- @return void
 function ComputedSignal.prototype:_notify()
+    if self._dirty then return end
+
+    self._dirty = true
+    self._own_producer:notify()
+end
+
+--- @private
+--- @return void
+function ComputedSignal.prototype:_recompute()
     self._own_watcher:activate()
     local ok, value = pcall(self._compute)
     local producers = self._own_watcher:deactivate()
 
-    local has_changed
     if ok then
-        has_changed = not self._has_value or self._value ~= value
         self._has_value = true
         self._value = value
         self._error = nil
     else
-        -- NOTE: Errors are never the same.
-        has_changed = true
         self._has_value = false
         self._value = nil
         self._error = value
@@ -325,10 +338,6 @@ function ComputedSignal.prototype:_notify()
     end
 
     self._producers = producers
-
-    if has_changed then
-        self._own_producer:notify()
-    end
 end
 
 --- @generic T

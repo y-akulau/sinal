@@ -2,5 +2,5 @@
 
 - [x] `effect` cleanup
 - [ ] `untracked`
-- [ ] lazy `computed`
+- [x] lazy `computed`
 - [x] batching
