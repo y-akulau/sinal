@@ -152,7 +152,6 @@ end
 --- @private
 --- @return void
 function SignalWatcher.prototype:__init()
-    self._producers = {}
 end
 
 --- @public
@@ -161,6 +160,7 @@ function SignalWatcher.prototype:activate()
     assert(self._parent == nil, "Watcher is already activated")
 
     self._parent = SignalWatcher._current
+    self._producers = {}
     SignalWatcher._current = self
 end
 
@@ -173,7 +173,7 @@ function SignalWatcher.prototype:deactivate()
     self._parent = nil
 
     local producers = self._producers
-    self._producers = {}
+    self._producers = nil
 
     return producers
 end
@@ -183,6 +183,31 @@ end
 --- @return void
 function SignalWatcher.prototype:watch(producer)
     self._producers[producer] = true
+end
+
+--- @class (exact) BlindSignalWatcherClass : Class
+--- @field public new fun(self: self): BlindSignalWatcher
+local BlindSignalWatcher = Class:extend(SignalWatcher, "BlindSignalWatcher")
+
+--- @class (exact) BlindSignalWatcher : SignalWatcher
+BlindSignalWatcher.prototype = BlindSignalWatcher.prototype
+
+--- @see SignalWatcher.watch
+function BlindSignalWatcher.prototype:watch() end
+
+SignalWatcher.blind = BlindSignalWatcher:new()
+
+--- @generic T
+--- @param block fun(): T
+--- @return T
+function M.untracked(block)
+    SignalWatcher.blind:activate()
+    local ok, result = pcall(block)
+    _ = SignalWatcher.blind:deactivate()
+
+    if not ok then error(result, 2) end
+
+    return result
 end
 
 --- @class (exact) ISignal<T>

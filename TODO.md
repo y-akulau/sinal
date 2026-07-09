@@ -1,6 +1,6 @@
 # TODO
 
 - [x] `effect` cleanup
-- [ ] `untracked`
+- [x] `untracked`
 - [ ] lazy `computed`
 - [x] batching
