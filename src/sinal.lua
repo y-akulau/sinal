@@ -167,19 +167,17 @@ function SignalWatcher.prototype:activate()
 end
 
 --- @public
---- @return void
+--- @return table<SignalProducer, true>
 function SignalWatcher.prototype:deactivate()
     assert(SignalWatcher._current == self, "Watcher is not activated")
 
     SignalWatcher._current = self._parent
     self._parent = nil
-    self._producers = {}
-end
 
---- @public
---- @return table<SignalProducer, true>
-function SignalWatcher.prototype:producers()
-    return self._producers
+    local producers = self._producers
+    self._producers = {}
+
+    return producers
 end
 
 --- @public
@@ -298,8 +296,7 @@ end
 function ComputedSignal.prototype:_notify()
     self._own_watcher:activate()
     local ok, value = pcall(self._compute)
-    local producers = self._own_watcher:producers()
-    self._own_watcher:deactivate()
+    local producers = self._own_watcher:deactivate()
 
     local has_changed
     if ok then
@@ -408,8 +405,7 @@ function Effect.prototype:_notify()
     --- @type IEffectScope
     local scope = { disposables = disposer }
     local ok = pcall(self._setup, scope)
-    local producers = self._watcher:producers()
-    self._watcher:deactivate()
+    local producers = self._watcher:deactivate()
 
     if not ok then
         self:_teardown()
