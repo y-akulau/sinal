@@ -288,7 +288,7 @@ function ComputedSignal.prototype:get()
         return self._value
     end
 
-    error(self._error, 0)
+    error(self._error, 2)
 end
 
 --- @private
