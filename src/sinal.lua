@@ -7,9 +7,9 @@ local M = {}
 --- @class (exact) ISignalConsumer
 --- @field private _notify fun(self: ISignalConsumer): void
 
---- @class (exact) SignalBatcherClass: Class
---- @field public new       fun(self: self): SignalBatcher
+--- @class (exact) SignalBatcherClass : Class
 --- @field private _current SignalBatcher?
+--- @field public  new      fun(self: self): SignalBatcher
 local SignalBatcher = Class:new("SignalBatcher")
 
 --- @class (exact) SignalBatcher
@@ -68,8 +68,8 @@ function SignalBatcher.prototype:_flush()
     local seen = {}
     for _, producer in ipairs(current) do
         if not seen[producer] then
-            producer:notify()
             seen[producer] = true
+            producer:notify()
         end
     end
 end
@@ -83,12 +83,10 @@ function M.batch(block)
     local ok, e = pcall(block)
     SIGNAL_BATCHER:deactivate()
 
-    if not ok then
-        error(e, 2)
-    end
+    if not ok then error(e, 2) end
 end
 
---- @class (exact) SignalProducerClass: Class
+--- @class (exact) SignalProducerClass : Class
 --- @field public new fun(self: self): SignalProducer
 local SignalProducer = Class:new("SignalProducer")
 
@@ -135,9 +133,9 @@ function SignalProducer.prototype:batch_notify()
     end
 end
 
---- @class (exact) SignalWatcherClass: Class
---- @field public new       fun(self: self): SignalWatcher
+--- @class (exact) SignalWatcherClass : Class
 --- @field private _current SignalWatcher?
+--- @field public  new      fun(self: self): SignalWatcher
 local SignalWatcher = Class:new("SignalWatcher")
 
 --- @class (exact) SignalWatcher
@@ -190,15 +188,14 @@ end
 --- @class (exact) ISignal<T>
 --- @field get fun(self: self): T
 
---- @class (exact) IWritableSignal<T>: ISignal<T>
+--- @class (exact) IWritableSignal<T> : ISignal<T>
 --- @field set fun(self: self, new_value: T): void
 
---- @class (exact) SignalClass: Class
---- @generic T
---- @field public new fun(self: self, initial_value: T): Signal<T>
+--- @class (exact) SignalClass : Class
+--- @field public new fun<T>(self: self, initial_value: T): Signal<T>
 local Signal = Class:new("Signal")
 
---- @class (exact) Signal<T>: IWritableSignal<T>
+--- @class (exact) Signal<T> : IWritableSignal<T>
 --- @field private _producer SignalProducer
 --- @field private _value    T
 Signal.prototype = Signal.prototype
@@ -212,9 +209,7 @@ function Signal.prototype:__init(initial_value)
     self._value = initial_value
 end
 
---- @generic T
---- @public
---- @return T
+--- @see ISignal.get
 function Signal.prototype:get()
     local watcher = SignalWatcher:current()
     if watcher then
@@ -224,10 +219,7 @@ function Signal.prototype:get()
     return self._value
 end
 
---- @generic T
---- @public
---- @param new_value T
---- @return void
+--- @see IWritableSignal.set
 function Signal.prototype:set(new_value)
     local has_changed = self._value ~= new_value
 
@@ -244,18 +236,18 @@ function M.signal(initial_value)
     return Signal:new(initial_value)
 end
 
---- @class (exact) ComputedSignalClass: Class
---- @field public new fun(self: self, compute: (fun(): any)): ComputedSignal<any>
+--- @class (exact) ComputedSignalClass : Class
+--- @field public new fun<T>(self: self, compute: (fun(): T)): ComputedSignal<T>
 local ComputedSignal = Class:new("ComputedSignal")
 
---- @class (exact) ComputedSignal<T>: ISignal<T>, ISignalConsumer
+--- @class (exact) ComputedSignal<T> : ISignal<T>, ISignalConsumer
 --- @field private _own_watcher  SignalWatcher
 --- @field private _producers    table<SignalProducer, true>
 --- @field private _own_producer SignalProducer
 --- @field private _compute      fun(): T
 --- @field private _has_value    boolean
---- @field private _value?        T
---- @field private _error?        unknown
+--- @field private _value?       T
+--- @field private _error?       unknown
 ComputedSignal.prototype = ComputedSignal.prototype
 
 --- @generic T
@@ -275,9 +267,7 @@ function ComputedSignal.prototype:__init(compute)
     self:_notify()
 end
 
---- @generic T
---- @public
---- @return T
+--- @see ISignal.get
 function ComputedSignal.prototype:get()
     local watcher = SignalWatcher:current()
     if watcher then
@@ -291,8 +281,8 @@ function ComputedSignal.prototype:get()
     error(self._error, 2)
 end
 
+--- @see ISignalConsumer._notify
 --- @private
---- @return void
 function ComputedSignal.prototype:_notify()
     self._own_watcher:activate()
     local ok, value = pcall(self._compute)
@@ -343,11 +333,11 @@ end
 
 --- @alias EffectSetup fun(scope: IEffectScope): void
 
---- @class (exact) EffectClass: Class
+--- @class (exact) EffectClass : Class
 --- @field public new fun(self: self, setup: EffectSetup): Effect
 local Effect = Class:new("Effect")
 
---- @class (exact) Effect: IDisposable, ISignalConsumer
+--- @class (exact) Effect : IDisposable, ISignalConsumer
 --- @field private _watcher      SignalWatcher
 --- @field private _producers    table<SignalProducer, true>
 --- @field private _setup        EffectSetup
@@ -365,14 +355,12 @@ function Effect.prototype:__init(setup)
     self:_notify()
 end
 
---- @public
---- @return boolean
+--- @see IDisposable.is_disposed
 function Effect.prototype:is_disposed()
     return self._watcher == nil
 end
 
---- @public
---- @return void
+--- @see IDisposable.dispose
 function Effect.prototype:dispose()
     if self:is_disposed() then
         return
@@ -389,8 +377,8 @@ function Effect.prototype:dispose()
     self._producers = nil
 end
 
+--- @see ISignalConsumer._notify
 --- @private
---- @return void
 function Effect.prototype:_notify()
     if self:is_disposed() then
         return
