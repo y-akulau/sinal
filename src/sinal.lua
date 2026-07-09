@@ -186,10 +186,10 @@ function SignalWatcher.prototype:watch(producer)
 end
 
 --- @class (exact) ISignal<T>
---- @field get fun(self: self): T
+--- @field get fun(self: ISignal<T>): T
 
 --- @class (exact) IWritableSignal<T> : ISignal<T>
---- @field set fun(self: self, new_value: T): void
+--- @field set fun(self: IWritableSignal<T>, new_value: T): void
 
 --- @class (exact) SignalClass : Class
 --- @field public new fun<T>(self: self, initial_value: T): Signal<T>
