@@ -33,9 +33,7 @@ end
 --- @public
 --- @return void
 function SignalBatcher.prototype:activate()
-    if self._depth == 0 then
-        SignalBatcher._current = self
-    end
+    if self._depth == 0 then SignalBatcher._current = self end
 
     self._depth = self._depth + 1
 end
@@ -151,8 +149,7 @@ end
 
 --- @private
 --- @return void
-function SignalWatcher.prototype:__init()
-end
+function SignalWatcher.prototype:__init() end
 
 --- @public
 --- @return void
@@ -238,9 +235,7 @@ end
 --- @see ISignal.get
 function Signal.prototype:get()
     local watcher = SignalWatcher:current()
-    if watcher then
-        watcher:watch(self._producer)
-    end
+    if watcher then watcher:watch(self._producer) end
 
     return self._value
 end
@@ -250,9 +245,7 @@ function Signal.prototype:set(new_value)
     local has_changed = self._value ~= new_value
 
     self._value = new_value
-    if has_changed then
-        self._producer:batch_notify()
-    end
+    if has_changed then self._producer:batch_notify() end
 end
 
 --- @generic T
@@ -296,13 +289,9 @@ end
 --- @see ISignal.get
 function ComputedSignal.prototype:get()
     local watcher = SignalWatcher:current()
-    if watcher then
-        watcher:watch(self._own_producer)
-    end
+    if watcher then watcher:watch(self._own_producer) end
 
-    if self._has_value then
-        return self._value
-    end
+    if self._has_value then return self._value end
 
     error(self._error, 2)
 end
@@ -329,22 +318,16 @@ function ComputedSignal.prototype:_notify()
     end
 
     for old_producer in pairs(self._producers) do
-        if not producers[old_producer] then
-            old_producer:unsubscribe(self)
-        end
+        if not producers[old_producer] then old_producer:unsubscribe(self) end
     end
 
     for new_producer in pairs(producers) do
-        if not self._producers[new_producer] then
-            new_producer:subscribe(self)
-        end
+        if not self._producers[new_producer] then new_producer:subscribe(self) end
     end
 
     self._producers = producers
 
-    if has_changed then
-        self._own_producer:notify()
-    end
+    if has_changed then self._own_producer:notify() end
 end
 
 --- @generic T
@@ -388,9 +371,7 @@ end
 
 --- @see IDisposable.dispose
 function Effect.prototype:dispose()
-    if self:is_disposed() then
-        return
-    end
+    if self:is_disposed() then return end
 
     self._watcher = nil
     self._setup = nil
@@ -406,9 +387,7 @@ end
 --- @see ISignalConsumer._notify
 --- @private
 function Effect.prototype:_notify()
-    if self:is_disposed() then
-        return
-    end
+    if self:is_disposed() then return end
 
     self:_teardown()
 
@@ -421,20 +400,14 @@ function Effect.prototype:_notify()
     local ok = pcall(self._setup, scope)
     local producers = self._watcher:deactivate()
 
-    if not ok then
-        self:_teardown()
-    end
+    if not ok then self:_teardown() end
 
     for old_producer in pairs(self._producers) do
-        if not producers[old_producer] then
-            old_producer:unsubscribe(self)
-        end
+        if not producers[old_producer] then old_producer:unsubscribe(self) end
     end
 
     for new_producer in pairs(producers) do
-        if not self._producers[new_producer] then
-            new_producer:subscribe(self)
-        end
+        if not self._producers[new_producer] then new_producer:subscribe(self) end
     end
 
     self._producers = producers
@@ -446,9 +419,7 @@ function Effect.prototype:_teardown()
     local disposables = self._disposables
     self._disposables = nil
 
-    if disposables then
-        pcall(disposables.dispose, disposables)
-    end
+    if disposables then pcall(disposables.dispose, disposables) end
 end
 
 --- @param setup EffectSetup
