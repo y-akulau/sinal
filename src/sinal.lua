@@ -390,17 +390,21 @@ function Effect.prototype:_notify()
     if self:is_disposed() then return end
 
     self:_teardown()
+    if self:is_disposed() then return end
 
     local disposables = CompositeDisposable:new()
     self._disposables = disposables
 
-    self._watcher:activate()
+    local watcher = self._watcher
+    watcher:activate()
     --- @type IEffectScope
     local scope = { disposables = disposables }
     local ok = pcall(self._setup, scope)
-    local producers = self._watcher:deactivate()
+    local producers = watcher:deactivate()
+    if self:is_disposed() then return end
 
     if not ok then self:_teardown() end
+    if self:is_disposed() then return end
 
     for old_producer in pairs(self._producers) do
         if not producers[old_producer] then old_producer:unsubscribe(self) end
