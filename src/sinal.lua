@@ -391,12 +391,12 @@ function Effect.prototype:_notify()
 
     self:_teardown()
 
-    self._disposables = CompositeDisposable:new()
-    local disposer = Disposer:new(self._disposables)
+    local disposables = CompositeDisposable:new()
+    self._disposables = disposables
 
     self._watcher:activate()
     --- @type IEffectScope
-    local scope = { disposables = disposer }
+    local scope = { disposables = disposables }
     local ok = pcall(self._setup, scope)
     local producers = self._watcher:deactivate()
 
