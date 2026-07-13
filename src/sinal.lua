@@ -192,16 +192,15 @@ BlindSignalWatcher.prototype = BlindSignalWatcher.prototype
 --- @see SignalWatcher.watch
 function BlindSignalWatcher.prototype:watch() end
 
-SignalWatcher.blind = BlindSignalWatcher:new()
-
 --- @generic T, A
 --- @param block fun(...: A...): T
 --- @param ... A...
 --- @return T
 function M.untracked(block, ...)
-    SignalWatcher.blind:activate()
+    local watcher = BlindSignalWatcher:new()
+    watcher:activate()
     local ok, result = pcall(block, ...)
-    _ = SignalWatcher.blind:deactivate()
+    _ = watcher:deactivate()
 
     if not ok then error(result, 2) end
 
